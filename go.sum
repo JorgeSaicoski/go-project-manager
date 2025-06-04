@@ -1,3 +1,5 @@
+github.com/JorgeSaicoski/keycloak-auth v0.0.0-20250602201602-10a3bb80826c h1:RWxi/yPACkmv8i9v+udbBi2b4q0c3WkhD+BADOilEtQ=
+github.com/JorgeSaicoski/keycloak-auth v0.0.0-20250602201602-10a3bb80826c/go.mod h1:lxnIWlYk4d+ovdCNne/EtBuzWFvA9uZrS6qLgvthO3s=
 github.com/JorgeSaicoski/pgconnect v0.0.0-20250513192533-9d6a4a231d4d h1:VdyQJ4VSPmNPtz2tQR5zSbWuBZ+Egjt9VDZOc6fwkNk=
 github.com/JorgeSaicoski/pgconnect v0.0.0-20250513192533-9d6a4a231d4d/go.mod h1:VxXzuAyrPpgPrf4SC2jKniB/nnjsBxveRB3XcrOYCtA=
 github.com/bytedance/sonic v1.11.6 h1:oUp34TzMlL+OY1OUWxHqsdkgC/Zfc85zGqw9siXjrc0=
