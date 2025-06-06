@@ -76,13 +76,6 @@ func (tr *ProjectRouter) RegisterRoutes() {
 	{
 
 	}
-
-	// Home route
-	tr.router.GET("/", func(c *gin.Context) {
-		c.HTML(200, "index.tmpl", gin.H{
-			"title": "Projects",
-		})
-	})
 }
 
 // GetRouter returns the configured gin router
