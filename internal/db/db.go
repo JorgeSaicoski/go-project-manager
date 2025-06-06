@@ -6,61 +6,53 @@ import (
 	"time"
 
 	"github.com/JorgeSaicoski/pgconnect"
-	"gorm.io/gorm"
 )
 
 var DB *pgconnect.DB
 
-type Project struct {
-	gorm.Model
-	Title       string  `json:"title" gorm:"not null"`
-	Description *string `json:"description,omitempty"`
-	Status      string  `json:"status" gorm:"default:'active'"` // active, completed, paused, cancelled
-	Type        string  `json:"type" gorm:"not null"`           // personal, freelance, study, work
-
-	// Owner and company relationship
-	OwnerID   string  `json:"ownerId" gorm:"not null;index"`    // User who created the project
-	CompanyID *string `json:"companyId,omitempty" gorm:"index"` // Optional company association
-
-	// Time tracking
-	EstimatedHours *float64 `json:"estimatedHours,omitempty"`
-	ActualHours    float64  `json:"actualHours" gorm:"default:0"`
-
-	// Dates
-	StartDate *time.Time `json:"startDate,omitempty"`
-	DueDate   *time.Time `json:"dueDate,omitempty"`
-	EndDate   *time.Time `json:"endDate,omitempty"`
-
-	// Metadata
-	CreatedAt time.Time      `json:"createdAt"`
-	UpdatedAt time.Time      `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+type BaseProject struct {
+	ID          uint       `json:"id"`
+	Title       string     `json:"title"`
+	Description *string    `json:"description"`
+	Status      string     `json:"status"` // active, completed, paused, cancelled
+	OwnerID     string     `json:"ownerId"`
+	CompanyID   *string    `json:"companyId,omitempty"`
+	StartDate   *time.Time `json:"startDate"`
+	EndDate     *time.Time `json:"endDate"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
 }
 
-// ProjectMember represents users assigned to a project
 type ProjectMember struct {
-	ID        uint      `json:"id" gorm:"primaryKey"`
-	ProjectID uint      `json:"projectId" gorm:"not null;index"`
-	UserID    string    `json:"userId" gorm:"not null;index"`
-	Role      string    `json:"role" gorm:"default:'member'"` // owner, manager, member, viewer
-	JoinedAt  time.Time `json:"joinedAt" gorm:"autoCreateTime"`
-
-	// Relationships
-	Project Project `json:"-" gorm:"foreignKey:ProjectID"`
+	ProjectID   string    `json:"projectId"`   // External project ID
+	ProjectType string    `json:"projectType"` // professional, education, finance
+	UserID      string    `json:"userId"`
+	Role        string    `json:"role"`
+	Permissions []string  `json:"permissions"`
+	JoinedAt    time.Time `json:"joinedAt"`
 }
 
-// ProjectPermission defines what actions a user can perform on a project
-type ProjectPermission struct {
-	ID               uint `json:"id" gorm:"primaryKey"`
-	ProjectMemberID  uint `json:"projectMemberId" gorm:"not null;index"`
-	CanEdit          bool `json:"canEdit" gorm:"default:false"`
-	CanDelete        bool `json:"canDelete" gorm:"default:false"`
-	CanManageMembers bool `json:"canManageMembers" gorm:"default:false"`
-	CanViewTime      bool `json:"canViewTime" gorm:"default:true"`
-	CanEditTime      bool `json:"canEditTime" gorm:"default:false"`
+type Company struct {
+	ID      string          `json:"id"`
+	Name    string          `json:"name"`
+	Type    string          `json:"type"` // enterprise, school, personal
+	OwnerID string          `json:"ownerId"`
+	Members []CompanyMember `json:"members"`
+}
 
-	// Relationships
-	ProjectMember ProjectMember `json:"-" gorm:"foreignKey:ProjectMemberID"`
+type CompanyMember struct {
+	ID        uint       `json:"id"`
+	CompanyID string     `json:"companyId"`
+	UserID    string     `json:"userId"`
+	Role      string     `json:"role"`     // admin, manager, employee, student, teacher
+	Status    string     `json:"status"`   // active, invited, suspended
+	JoinedAt  *time.Time `json:"joinedAt"` // nil if still invited
+	InvitedAt time.Time  `json:"invitedAt"`
+	InvitedBy string     `json:"invitedBy"` // UserID of who sent invitation
+
+	// Company-specific data
+	Salary     *float64 `json:"salary,omitempty"`     // For employees
+	HourlyRate *float64 `json:"hourlyRate,omitempty"` // For freelancers/contractors
 }
 
 func ConnectDatabase() {
@@ -101,7 +93,7 @@ func ConnectDatabase() {
 	}
 
 	// Auto migrate the Task model
-	DB.AutoMigrate(&Project{}, &ProjectMember{}, &ProjectPermission{})
+	DB.AutoMigrate(&BaseProject{}, &ProjectMember{}, &Company{}, &CompanyMember{})
 }
 
 // Helper function to get environment variable with fallback
