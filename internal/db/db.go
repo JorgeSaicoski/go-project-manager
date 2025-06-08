@@ -28,20 +28,20 @@ type ProjectMember struct {
 	ProjectType string    `json:"projectType"` // professional, education, finance
 	UserID      string    `json:"userId"`
 	Role        string    `json:"role"`
-	Permissions []string  `json:"permissions"`
+	Permissions []string  `json:"permissions" gorm:"type:text[]"`
 	JoinedAt    time.Time `json:"joinedAt"`
 }
 
 type Company struct {
-	ID      string          `json:"id"`
+	ID      string          `json:"id" gorm:"primaryKey"`
 	Name    string          `json:"name"`
 	Type    string          `json:"type"` // enterprise, school, personal
 	OwnerID string          `json:"ownerId"`
-	Members []CompanyMember `json:"members"`
+	Members []CompanyMember `json:"members" gorm:"foreignKey:CompanyID"`
 }
 
 type CompanyMember struct {
-	ID        uint       `json:"id"`
+	ID        uint       `json:"id" gorm:"primaryKey"`
 	CompanyID string     `json:"companyId"`
 	UserID    string     `json:"userId"`
 	Role      string     `json:"role"`     // admin, manager, employee, student, teacher
@@ -53,6 +53,23 @@ type CompanyMember struct {
 	// Company-specific data
 	Salary     *float64 `json:"salary,omitempty"`     // For employees
 	HourlyRate *float64 `json:"hourlyRate,omitempty"` // For freelancers/contractors
+}
+
+// Invitation represents an invitation to join a company or project
+type Invitation struct {
+	ID           uint       `json:"id" gorm:"primaryKey"`
+	Type         string     `json:"type"`        // "company" or "project"
+	TargetID     string     `json:"targetId"`    // CompanyID or ProjectID
+	TargetName   string     `json:"targetName"`  // Company/Project name for display
+	InvitedUser  string     `json:"invitedUser"` // UserID of invited person
+	InvitedBy    string     `json:"invitedBy"`   // UserID of person who sent invitation
+	Role         string     `json:"role"`        // Role offered in company/project
+	Status       string     `json:"status"`      // "pending", "accepted", "declined", "expired"
+	Message      *string    `json:"message"`     // Optional invitation message
+	ExpiresAt    time.Time  `json:"expiresAt"`   // When invitation expires
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+	ResponseDate *time.Time `json:"responseDate"` // When user responded
 }
 
 func ConnectDatabase() {
@@ -92,8 +109,8 @@ func ConnectDatabase() {
 		}
 	}
 
-	// Auto migrate the Task model
-	DB.AutoMigrate(&BaseProject{}, &ProjectMember{}, &Company{}, &CompanyMember{})
+	// Auto migrate all models
+	DB.AutoMigrate(&BaseProject{}, &ProjectMember{}, &Company{}, &CompanyMember{}, &Invitation{})
 }
 
 // Helper function to get environment variable with fallback
