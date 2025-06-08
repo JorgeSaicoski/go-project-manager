@@ -5,11 +5,15 @@ import (
 
 	"github.com/JorgeSaicoski/go-project-manager/internal/api"
 	"github.com/JorgeSaicoski/go-project-manager/internal/db"
+	projectsService "github.com/JorgeSaicoski/go-project-manager/internal/services/projects"
 )
 
 func main() {
 	// Connect to the database
 	db.ConnectDatabase()
+
+	// Initialize services
+	projectService := projectsService.NewProjectService(db.DB)
 
 	// Get router config, possibly from environment variables
 	config := api.DefaultRouterConfig()
@@ -22,8 +26,8 @@ func main() {
 	// Create router with full configuration
 	projectRouter := api.NewProjectRouter(db.DB, config)
 
-	// Register all routes
-	projectRouter.RegisterRoutes()
+	// Register all routes (including projects)
+	projectRouter.RegisterRoutes(projectService)
 
 	// Start the server
 	port := getEnv("PORT", "8000")
@@ -36,5 +40,4 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
-
 }

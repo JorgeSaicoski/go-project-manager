@@ -4,6 +4,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JorgeSaicoski/go-project-manager/internal/api/projects"
+	projectsService "github.com/JorgeSaicoski/go-project-manager/internal/services/projects"
 	"github.com/JorgeSaicoski/pgconnect"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -11,8 +13,7 @@ import (
 
 // ProjectRouter handles routing for project-related endpoints
 type ProjectRouter struct {
-	handler *ProjectHandler
-	router  *gin.Engine
+	router *gin.Engine
 }
 
 // RouterConfig holds configuration for the router
@@ -31,7 +32,7 @@ func DefaultRouterConfig() RouterConfig {
 	return RouterConfig{
 		AllowedOrigins:   "http://localhost:3000",
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Origin", "Content-Type", "Content-Length", "Accept-Encoding", "Authorization"},
+		AllowedHeaders:   []string{"Origin", "Content-Type", "Content-Length", "Accept-Encoding", "Authorization", "X-User-ID"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * 60 * 60, // 12 hours
@@ -59,23 +60,43 @@ func NewProjectRouter(database *pgconnect.DB, config RouterConfig) *ProjectRoute
 		router.LoadHTMLGlob(config.TemplatesGlob)
 	}
 
-	// Create the project handler
-	projectHandler := NewProjectHandler(database)
-
 	return &ProjectRouter{
-		handler: projectHandler,
-		router:  router,
+		router: router,
 	}
 }
 
-// RegisterRoutes sets up all project-related routes
-func (tr *ProjectRouter) RegisterRoutes() {
-	// Projects endpoints
-	projectsGroup := tr.router.Group("/projects")
-	projectsGroup.Use(AuthMiddleware())
-	{
+// RegisterRoutes sets up all routes for the internal service
+func (tr *ProjectRouter) RegisterRoutes(projectService *projectsService.ProjectService) {
+	// API group for all internal endpoints
+	api := tr.router.Group("/api/v1")
 
-	}
+	// Register projects routes
+	projects.RegisterRoutes(api, projectService)
+
+	// Health check endpoint (no auth needed for internal services)
+	tr.router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "healthy",
+			"service": "project-manager",
+		})
+	})
+
+	// Home route (optional, for testing)
+	tr.router.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"service": "Project Manager",
+			"version": "1.0.0",
+			"endpoints": []string{
+				"POST /api/v1/internal/projects",
+				"GET /api/v1/internal/projects/:id",
+				"PUT /api/v1/internal/projects/:id",
+				"DELETE /api/v1/internal/projects/:id",
+				"GET /api/v1/internal/projects",
+				"GET /api/v1/internal/projects/:id/members",
+				"POST /api/v1/internal/projects/:id/members",
+			},
+		})
+	})
 }
 
 // GetRouter returns the configured gin router
