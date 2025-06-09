@@ -55,23 +55,6 @@ type CompanyMember struct {
 	HourlyRate *float64 `json:"hourlyRate,omitempty"` // For freelancers/contractors
 }
 
-// Invitation represents an invitation to join a company or project
-type Invitation struct {
-	ID           uint       `json:"id" gorm:"primaryKey"`
-	Type         string     `json:"type"`        // "company" or "project"
-	TargetID     string     `json:"targetId"`    // CompanyID or ProjectID
-	TargetName   string     `json:"targetName"`  // Company/Project name for display
-	InvitedUser  string     `json:"invitedUser"` // UserID of invited person
-	InvitedBy    string     `json:"invitedBy"`   // UserID of person who sent invitation
-	Role         string     `json:"role"`        // Role offered in company/project
-	Status       string     `json:"status"`      // "pending", "accepted", "declined", "expired"
-	Message      *string    `json:"message"`     // Optional invitation message
-	ExpiresAt    time.Time  `json:"expiresAt"`   // When invitation expires
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
-	ResponseDate *time.Time `json:"responseDate"` // When user responded
-}
-
 func ConnectDatabase() {
 	// Create config using environment variables
 	config := pgconnect.DefaultConfig()
@@ -110,7 +93,7 @@ func ConnectDatabase() {
 	}
 
 	// Auto migrate all models
-	DB.AutoMigrate(&BaseProject{}, &ProjectMember{}, &Company{}, &CompanyMember{}, &Invitation{})
+	DB.AutoMigrate(&BaseProject{}, &ProjectMember{}, &Company{}, &CompanyMember{})
 }
 
 // Helper function to get environment variable with fallback
