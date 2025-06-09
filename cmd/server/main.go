@@ -2,10 +2,16 @@ package main
 
 import (
 	"os"
+	"strings"
+	"time"
 
-	"github.com/JorgeSaicoski/go-project-manager/internal/api"
+	"github.com/JorgeSaicoski/go-project-manager/internal/api/companies"
+	"github.com/JorgeSaicoski/go-project-manager/internal/api/projects"
 	"github.com/JorgeSaicoski/go-project-manager/internal/db"
+	companiesService "github.com/JorgeSaicoski/go-project-manager/internal/services/companies"
 	projectsService "github.com/JorgeSaicoski/go-project-manager/internal/services/projects"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -14,24 +20,51 @@ func main() {
 
 	// Initialize services
 	projectService := projectsService.NewProjectService(db.DB)
+	companyService := companiesService.NewCompanyService(db.DB)
 
-	// Get router config, possibly from environment variables
-	config := api.DefaultRouterConfig()
+	// Create gin router
+	router := gin.Default()
 
-	// Override with environment variables if needed
-	if origins := getEnv("ALLOWED_ORIGINS", ""); origins != "" {
-		config.AllowedOrigins = origins
-	}
+	// Configure CORS
+	setupCORS(router)
 
-	// Create router with full configuration
-	projectRouter := api.NewProjectRouter(db.DB, config)
-
-	// Register all routes (including projects)
-	projectRouter.RegisterRoutes(projectService)
+	// Setup routes
+	setupRoutes(router, projectService, companyService)
 
 	// Start the server
 	port := getEnv("PORT", "8000")
-	projectRouter.Run(":" + port)
+	router.Run(":" + port)
+}
+
+func setupCORS(router *gin.Engine) {
+	allowedOrigins := getEnv("ALLOWED_ORIGINS", "http://localhost:3000")
+	origins := strings.Split(allowedOrigins, ",")
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     origins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Content-Length", "Accept-Encoding", "Authorization", "X-User-ID"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+}
+
+func setupRoutes(router *gin.Engine, projectService *projectsService.ProjectService, companyService *companiesService.CompanyService) {
+	// API group for all internal endpoints
+	api := router.Group("/api")
+
+	// Register domain routes
+	projects.RegisterRoutes(api, projectService)
+	companies.RegisterRoutes(api, companyService)
+
+	// Health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "healthy",
+			"service": "project-manager",
+		})
+	})
 }
 
 // Helper function to get environment variables with fallback
