@@ -4,14 +4,14 @@ import (
 	"time"
 
 	"github.com/JorgeSaicoski/go-project-manager/internal/db"
+	"github.com/JorgeSaicoski/microservice-commons/types"
 )
 
-// Request DTOs
-
+// Request DTOs - keep these the same
 type CreateCompanyRequest struct {
 	ID      string `json:"id" binding:"required"`
 	Name    string `json:"name" binding:"required"`
-	Type    string `json:"type" binding:"required"` // enterprise, school, personal
+	Type    string `json:"type" binding:"required"`
 	OwnerID string `json:"ownerId" binding:"required"`
 }
 
@@ -27,8 +27,14 @@ type AddMemberRequest struct {
 	HourlyRate *float64 `json:"hourlyRate,omitempty"`
 }
 
-// Response DTOs
+type InternalCreateCompanyRequest struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	OwnerID string `json:"ownerId"`
+}
 
+// Response DTOs
 type CompanyResponse struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
@@ -49,26 +55,11 @@ type CompanyMemberResponse struct {
 	HourlyRate *float64   `json:"hourlyRate,omitempty"`
 }
 
-type CompanyListResponse struct {
-	Companies []CompanyResponse `json:"companies"`
-	Total     int               `json:"total"`
-}
+// Use standardized list responses
+type CompanyListResponse = types.ListResponse[CompanyResponse]
+type MemberListResponse = types.ListResponse[CompanyMemberResponse]
 
-type MemberListResponse struct {
-	Members []CompanyMemberResponse `json:"members"`
-	Total   int                     `json:"total"`
-}
-
-// Internal service request (for service-to-service calls)
-type InternalCreateCompanyRequest struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Type    string `json:"type"`
-	OwnerID string `json:"ownerId"`
-}
-
-// Conversion methods
-
+// Conversion methods remain the same
 func (r *CreateCompanyRequest) ToCompany() *db.Company {
 	return &db.Company{
 		ID:      r.ID,

@@ -33,6 +33,7 @@ require (
 
 require (
 	github.com/JorgeSaicoski/keycloak-auth v0.0.0-20250602201602-10a3bb80826c
+	github.com/JorgeSaicoski/microservice-commons v0.0.0-20250610204244-3ff0c3550b48
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-gonic/gin v1.10.1
 	github.com/golang-jwt/jwt/v5 v5.2.2

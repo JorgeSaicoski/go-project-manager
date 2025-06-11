@@ -4,10 +4,10 @@ import (
 	"time"
 
 	"github.com/JorgeSaicoski/go-project-manager/internal/db"
+	"github.com/JorgeSaicoski/microservice-commons/types"
 )
 
-// Request DTOs
-
+// Request DTOs - keep these the same
 type CreateProjectRequest struct {
 	Title       string     `json:"title" binding:"required"`
 	Description *string    `json:"description"`
@@ -15,7 +15,7 @@ type CreateProjectRequest struct {
 	CompanyID   *string    `json:"companyId"`
 	StartDate   *time.Time `json:"startDate"`
 	EndDate     *time.Time `json:"endDate"`
-	OwnerID     string     `json:"ownerId" binding:"required"` // Set by calling service
+	OwnerID     string     `json:"ownerId" binding:"required"`
 }
 
 type UpdateProjectRequest struct {
@@ -32,8 +32,17 @@ type AddMemberRequest struct {
 	Permissions []string `json:"permissions"`
 }
 
-// Response DTOs
+type InternalCreateProjectRequest struct {
+	Title       string     `json:"title"`
+	Description *string    `json:"description"`
+	Status      string     `json:"status"`
+	OwnerID     string     `json:"ownerId"`
+	CompanyID   *string    `json:"companyId"`
+	StartDate   *time.Time `json:"startDate"`
+	EndDate     *time.Time `json:"endDate"`
+}
 
+// Response DTOs - use types from microservice-commons
 type ProjectResponse struct {
 	ID          uint       `json:"id"`
 	Title       string     `json:"title"`
@@ -56,24 +65,10 @@ type ProjectMemberResponse struct {
 	JoinedAt    time.Time `json:"joinedAt"`
 }
 
-type ProjectListResponse struct {
-	Projects []ProjectResponse `json:"projects"`
-	Total    int               `json:"total"`
-}
+// Use standardized list response
+type ProjectListResponse = types.ListResponse[ProjectResponse]
 
-// Internal service request (for service-to-service calls)
-type InternalCreateProjectRequest struct {
-	Title       string     `json:"title"`
-	Description *string    `json:"description"`
-	Status      string     `json:"status"`
-	OwnerID     string     `json:"ownerId"`
-	CompanyID   *string    `json:"companyId"`
-	StartDate   *time.Time `json:"startDate"`
-	EndDate     *time.Time `json:"endDate"`
-}
-
-// Conversion methods
-
+// Conversion methods remain the same
 func (r *CreateProjectRequest) ToProject() *db.BaseProject {
 	return &db.BaseProject{
 		Title:       r.Title,

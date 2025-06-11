@@ -1,10 +1,12 @@
 package companies
 
 import (
-	"net/http"
+	"time"
 
 	"github.com/JorgeSaicoski/go-project-manager/internal/db"
 	"github.com/JorgeSaicoski/go-project-manager/internal/services/companies"
+	"github.com/JorgeSaicoski/microservice-commons/responses"
+	"github.com/JorgeSaicoski/microservice-commons/types"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,29 +20,26 @@ func NewCompanyHandler(companyService *companies.CompanyService) *CompanyHandler
 	}
 }
 
-// CreateCompany handles internal company creation requests
 func (h *CompanyHandler) CreateCompany(c *gin.Context) {
 	var req InternalCreateCompanyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		responses.BadRequest(c, err.Error())
 		return
 	}
 
 	company, err := h.companyService.CreateCompany(req.ToCompany())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		responses.InternalError(c, err.Error())
 		return
 	}
 
 	response := CompanyToResponse(company)
-	c.JSON(http.StatusCreated, response)
+	responses.Created(c, "Company created successfully", response)
 }
 
-// GetCompany retrieves a company by ID
 func (h *CompanyHandler) GetCompany(c *gin.Context) {
 	companyID := c.Param("id")
 
-	// Get requesting user ID from request body or header
 	userID := c.GetHeader("X-User-ID")
 	if userID == "" {
 		var req struct {
@@ -52,25 +51,24 @@ func (h *CompanyHandler) GetCompany(c *gin.Context) {
 	}
 
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID required"})
+		responses.BadRequest(c, "User ID required")
 		return
 	}
 
 	company, err := h.companyService.GetCompany(companyID, userID)
 	if err != nil {
 		if err.Error() == "user cannot access this company" {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			responses.Forbidden(c, err.Error())
 			return
 		}
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		responses.NotFound(c, err.Error())
 		return
 	}
 
 	response := CompanyToResponse(company)
-	c.JSON(http.StatusOK, response)
+	responses.Success(c, "Company retrieved successfully", response)
 }
 
-// UpdateCompany updates a company
 func (h *CompanyHandler) UpdateCompany(c *gin.Context) {
 	companyID := c.Param("id")
 
@@ -80,7 +78,7 @@ func (h *CompanyHandler) UpdateCompany(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		responses.BadRequest(c, err.Error())
 		return
 	}
 
@@ -93,22 +91,20 @@ func (h *CompanyHandler) UpdateCompany(c *gin.Context) {
 	company, err := h.companyService.UpdateCompany(companyID, companyUpdates, req.UserID)
 	if err != nil {
 		if err.Error() == "user cannot update this company" {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			responses.Forbidden(c, err.Error())
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		responses.InternalError(c, err.Error())
 		return
 	}
 
 	response := CompanyToResponse(company)
-	c.JSON(http.StatusOK, response)
+	responses.Success(c, "Company updated successfully", response)
 }
 
-// DeleteCompany deletes a company
 func (h *CompanyHandler) DeleteCompany(c *gin.Context) {
 	companyID := c.Param("id")
 
-	// Get user ID from request
 	userID := c.GetHeader("X-User-ID")
 	if userID == "" {
 		var req struct {
@@ -120,85 +116,86 @@ func (h *CompanyHandler) DeleteCompany(c *gin.Context) {
 	}
 
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID required"})
+		responses.BadRequest(c, "User ID required")
 		return
 	}
 
 	err := h.companyService.DeleteCompany(companyID, userID)
 	if err != nil {
 		if err.Error() == "only company owner can delete company" {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			responses.Forbidden(c, err.Error())
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		responses.InternalError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Company deleted successfully"})
+	responses.Success(c, "Company deleted successfully", nil)
 }
 
-// GetUserCompanies retrieves all companies for a user
 func (h *CompanyHandler) GetUserCompanies(c *gin.Context) {
-	// Get user ID from query parameter for internal calls
 	userID := c.Query("userId")
 	if userID == "" {
 		userID = c.GetHeader("X-User-ID")
 	}
 
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID required"})
+		responses.BadRequest(c, "User ID required")
 		return
 	}
 
 	companies, err := h.companyService.GetUserCompanies(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		responses.InternalError(c, err.Error())
 		return
 	}
 
-	responses := CompaniesToResponse(companies)
-	response := CompanyListResponse{
-		Companies: responses,
-		Total:     len(responses),
+	companyResponses := CompaniesToResponse(companies)
+	response := types.ListResponse[CompanyResponse]{
+		Data: companyResponses,
+		Meta: types.ResponseMetadata{
+			Count:     len(companyResponses),
+			Timestamp: time.Now(),
+		},
 	}
 
-	c.JSON(http.StatusOK, response)
+	responses.Success(c, "Companies retrieved successfully", response)
 }
 
-// GetCompanyMembers retrieves all members of a company
 func (h *CompanyHandler) GetCompanyMembers(c *gin.Context) {
 	companyID := c.Param("id")
 
-	// Get requesting user ID
 	userID := c.Query("userId")
 	if userID == "" {
 		userID = c.GetHeader("X-User-ID")
 	}
 
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID required"})
+		responses.BadRequest(c, "User ID required")
 		return
 	}
 
 	members, err := h.companyService.GetCompanyMembers(companyID, userID)
 	if err != nil {
 		if err.Error() == "user cannot access this company" {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			responses.Forbidden(c, err.Error())
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		responses.InternalError(c, err.Error())
 		return
 	}
 
-	responses := MembersToResponse(members)
-	response := MemberListResponse{
-		Members: responses,
-		Total:   len(responses),
+	memberResponses := MembersToResponse(members)
+	response := types.ListResponse[CompanyMemberResponse]{
+		Data: memberResponses,
+		Meta: types.ResponseMetadata{
+			Count:     len(memberResponses),
+			Timestamp: time.Now(),
+		},
 	}
-	c.JSON(http.StatusOK, response)
+	responses.Success(c, "Members retrieved successfully", response)
 }
 
-// AddCompanyMember adds a member to a company
 func (h *CompanyHandler) AddCompanyMember(c *gin.Context) {
 	companyID := c.Param("id")
 
@@ -208,7 +205,7 @@ func (h *CompanyHandler) AddCompanyMember(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		responses.BadRequest(c, err.Error())
 		return
 	}
 
@@ -220,18 +217,17 @@ func (h *CompanyHandler) AddCompanyMember(c *gin.Context) {
 	)
 	if err != nil {
 		if err.Error() == "user cannot add members to this company" {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			responses.Forbidden(c, err.Error())
 			return
 		}
 		if err.Error() == "user is already a member of this company" {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			responses.Conflict(c, err.Error())
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		responses.InternalError(c, err.Error())
 		return
 	}
 
-	// Update salary/hourly rate if provided
 	if req.Salary != nil {
 		member.Salary = req.Salary
 	}
@@ -240,15 +236,13 @@ func (h *CompanyHandler) AddCompanyMember(c *gin.Context) {
 	}
 
 	response := MemberToResponse(member)
-	c.JSON(http.StatusCreated, response)
+	responses.Created(c, "Member added successfully", response)
 }
 
-// RemoveCompanyMember removes a member from a company
 func (h *CompanyHandler) RemoveCompanyMember(c *gin.Context) {
 	companyID := c.Param("id")
 	userID := c.Param("userId")
 
-	// Get requesting user ID
 	requestingUserID := c.GetHeader("X-User-ID")
 	if requestingUserID == "" {
 		var req struct {
@@ -260,23 +254,23 @@ func (h *CompanyHandler) RemoveCompanyMember(c *gin.Context) {
 	}
 
 	if requestingUserID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Requesting User ID required"})
+		responses.BadRequest(c, "Requesting User ID required")
 		return
 	}
 
 	err := h.companyService.RemoveCompanyMember(companyID, userID, requestingUserID)
 	if err != nil {
 		if err.Error() == "user cannot remove members from this company" {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			responses.Forbidden(c, err.Error())
 			return
 		}
 		if err.Error() == "cannot remove company owner" {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			responses.Forbidden(c, err.Error())
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		responses.InternalError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Member removed successfully"})
+	responses.Success(c, "Member removed successfully", nil)
 }
