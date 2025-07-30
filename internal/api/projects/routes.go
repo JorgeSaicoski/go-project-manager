@@ -1,6 +1,7 @@
 package projects
 
 import (
+	"github.com/JorgeSaicoski/go-project-manager/internal/api"
 	"github.com/JorgeSaicoski/go-project-manager/internal/services/projects"
 	"github.com/gin-gonic/gin"
 )
@@ -11,6 +12,9 @@ func RegisterRoutes(router *gin.RouterGroup, projectService *projects.ProjectSer
 
 	// Internal API routes for service-to-service communication
 	internal := router.Group("/internal/projects")
+	internal.Use(
+		api.LoggingMiddleware(),
+	)
 	{
 		// Project CRUD
 		internal.POST("", handler.CreateProject)       // Create project

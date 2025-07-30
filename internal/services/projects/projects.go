@@ -2,12 +2,26 @@ package projects
 
 import (
 	"errors"
+	"log/slog"
 	"strconv"
 	"time"
 
 	"github.com/JorgeSaicoski/go-project-manager/internal/db"
 	"github.com/JorgeSaicoski/pgconnect"
 )
+
+/* ------------------------------------------------------------------ */
+/*  Logger                                                            */
+/* ------------------------------------------------------------------ */
+
+var log = slog.Default().With(
+	slog.String("layer", "service"),
+	slog.String("service", "ProfessionalProjectService"),
+)
+
+/* ------------------------------------------------------------------ */
+/*  Service definition & constructor                                  */
+/* ------------------------------------------------------------------ */
 
 type ProjectService struct {
 	projectRepo       *pgconnect.Repository[db.BaseProject]
@@ -24,6 +38,8 @@ func NewProjectService(database *pgconnect.DB) *ProjectService {
 }
 
 func (s *ProjectService) CreateProject(project *db.BaseProject) (*db.BaseProject, error) {
+	log.Info("create-core-project:start", "userID", project.OwnerID)
+
 	// Business logic: validate company ownership if company is specified
 	if project.CompanyID != nil {
 		canCreate, err := s.userCanCreateInCompany(project.OwnerID, *project.CompanyID)
@@ -47,11 +63,13 @@ func (s *ProjectService) CreateProject(project *db.BaseProject) (*db.BaseProject
 	if err := s.projectRepo.Create(project); err != nil {
 		return nil, err
 	}
+	log.Info("project-created", "ID", project.ID)
 
 	return project, nil
 }
 
 func (s *ProjectService) GetProject(id uint, userID string) (*db.BaseProject, error) {
+	log.Info("get-core-project:start", "userID", userID, "ProjectID", id)
 	var project db.BaseProject
 	if err := s.projectRepo.FindByID(id, &project); err != nil {
 		return nil, err

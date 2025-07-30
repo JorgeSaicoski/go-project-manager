@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  project-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: project-core
+    environment:
+      POSTGRES_HOST: shared-db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: shared_db
+      POSTGRES_SSLMODE: disable
+      POSTGRES_TIMEZONE: UTC
+      ALLOWED_ORIGINS: http://localhost:8080
+      KEYCLOAK_URL: http://keycloak:8080/keycloak
+      KEYCLOAK_REALM: master
+      PORT: 8001
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    external: true
